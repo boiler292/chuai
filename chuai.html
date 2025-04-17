@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>梭哈游戏</title>
+  <style>
+   
+
+    body { background: #2c3e50; color: white; font-family: Arial; }
+    .container { display: flex; justify-content: space-around; padding: 20px; }
+    .player-area, .dealer-area { width: 45%; border: 2px solid #3498db; padding: 10px; }
+    .cards { display: flex; gap: 10px; margin: 10px 0; }
+    .card { width: 80px; height: 120px; background: white; border-radius: 8px; 
+            display: flex; justify-content: center; align-items: center; color: black; }
+    .hidden { background: #3498db; color: white; }
+    .controls { margin-top: 20px; }
+    button { padding: 10px; margin: 5px; cursor: pointer; }
+    .chip-count { font-size: 20px; }
+
+  
+  .poker-card {
+    width: 80px;
+    height: 120px;
+    position: relative;
+    perspective: 1000px;
+    cursor: pointer;
+    margin: 15px;
+    transition: transform 0.3s;
+  }
+  
+  /* 悬停放大效果 */
+  .poker-card:hover {
+    transform: scale(1.05);
+  }
+  
+  /* 正反面通用样式 */
+  .card-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    backface-visibility: hidden;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: #fff;
+  }
+  
+  /* 卡片正面 */
+  .card-front {
+    transform-style: preserve-3d;
+  }
+  
+  /* 卡片背面（默认翻转状态） */
+  .card-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  }
+  
+  /* 翻转动画 */
+  .poker-card.flipped .card-front {
+    transform: rotateY(-180deg);
+  }
+  
+  .poker-card.flipped .card-back {
+    transform: rotateY(0deg);
+  }
+  
+  /* 扑克牌数字/字母样式 */
+  .card-corner {
+    position: absolute;
+    font-size: 1.8em;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  .top-left {
+    top: 12px;
+    left: 12px;
+    text-align: left;
+  }
+  
+  .bottom-right {
+    bottom: 12px;
+    right: 12px;
+    transform: rotate(180deg);
+  }
+  
+  /* 花色颜色 */
+  .red { color: #e74c3c; }
+  .black { color: #2c3e50; }
+  
+  /* 中心花色图案 */
+  .center-suit {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 80px;
+    opacity: 0.9;
+  }
+  
+  /* 卡片背面图案 */
+  .card-back::before {
+    content: "";
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+    background: repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.1),
+      rgba(255,255,255,0.1) 10px,
+      rgba(0,0,0,0.05) 10px,
+      rgba(0,0,0,0.05) 20px
+    );
+    border-radius: 8px;
+    border: 3px solid rgba(255,255,255,0.2);
+  }
+  
+  /* 特殊卡片样式（例如鬼牌） */
+  .joker-card .center-suit {
+    font-size: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .joker-card .center-suit::after {
+    content: "JOKER";
+    font-size: 24px;
+    margin-top: 10px;
+    letter-spacing: 2px;
+  }
+</style>
+
+</head>
+<body>
+  <div class="container">
+    <!-- 玩家区域 -->
+    <div class="player-area">
+      <h2>玩家 (筹码: <span id="playerChips">1000</span>)</h2>
+      <div class="cards" id="playerCards"></div>
+      <div class="controls" id="playerControls"></div>
+    </div>
+
+    <!-- 庄家区域 -->
+    <div class="dealer-area">
+      <h2>庄家 (筹码: <span id="dealerChips">5000</span>)</h2>
+      <div class="cards" id="dealerCards"></div>
+    </div>
+     <!-- 黑桃牌示例 -->
+  <!-- <div class="poker-card" onclick="this.classList.toggle('flipped')">
+    <div class="card-face card-front">
+      <div class="card-corner top-left black">A♠</div>
+      <div class="center-suit black">♠</div>
+      <div class="card-corner bottom-right black">A♠</div>
+    </div>
+    <div class="card-face card-back"></div>
+  </div>
+  红心牌示例 -->
+  <!-- <div class="poker-card" onclick="this.classList.toggle('flipped')">
+    <div class="card-face card-front">
+      <div class="card-corner top-left red">10♥</div>
+      <div class="center-suit red">♥</div>
+      <div class="card-corner bottom-right red">10♥</div>
+    </div>
+    <div class="card-face card-back"></div>
+  </div> -->
+  <!-- 鬼牌示例 -->
+  <!-- <div class="poker-card joker-card" onclick="this.classList.toggle('flipped')">
+    <div class="card-face card-front">
+      <div class="card-corner top-left red">JOKER</div>
+      <div class="center-suit red">🤡</div>
+      <div class="card-corner bottom-right red">JOKER</div>
+    </div>
+    <div class="card-face card-back"></div> -->
+  </div>
+  </div>
+  <script type="module">
+    import { io } from "https://cdn.socket.io/4.7.4/socket.io.esm.min.js";
+        // 加入房间
+    const socket = io(); //ws的地址
+
+    socket.emit('join-room', 'room1');
+
+    // 监听游戏状态更新
+    debugger
+    socket.on('game-update', (state) => {
+    debugger
+    // renderGame(state);
+});
+    
+    </script>
+ 
+<script>
+
+// ================== 游戏核心逻辑 ==================
+class ShowHandGame {
+  constructor() {
+    this.deck = [];
+    this.player = { chips: 1000, cards: [] };
+    this.dealer = { chips: 5000, cards: [] };
+    this.currentBet = 0;
+    this.gamePhase = 'betting'; // betting, dealing, showdown
+  }
+
+  // 初始化新游戏
+  initGame() {
+    this.generateDeck();
+    this.shuffleDeck();
+    this.player.cards = [];
+    this.dealer.cards = [];
+    this.currentBet = 0;
+    this.updateUI();
+    this.proceedGame()
+    this.proceedGame()
+  }
+
+  // 生成牌堆
+  generateDeck() {
+    const suits = ['♠', '♥', '♦', '♣'];
+    // const ranks = Array.from({length: 13}, (_, i) => i + 2); // 2-14
+    const ranks =[8,9,10,11,12,13]
+    this.deck = [];
+    for (let suit of suits) {
+      for (let rank of ranks) {
+        this.deck.push({ suit, rank });
+      }
+    }
+  }
+
+  // 洗牌
+  shuffleDeck() {
+    for (let i = this.deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+    }
+  }
+
+  // 发牌
+  dealCard(target) {
+    const card = this.deck.pop();
+    target.cards.push(card);
+    this.updateUI();
+  }
+
+  // 玩家下注
+  placeBet(amount) {
+    if (this.player.chips < amount) return false;
+    this.player.chips -= amount;
+    this.currentBet += amount;
+    return true;
+  }
+
+  // 全押
+  allIn() {
+    const bet = this.player.chips;
+    this.placeBet(bet);
+  }
+
+  // 更新界面
+  updateUI() {
+    // 更新筹码显示
+    document.getElementById('playerChips').textContent = this.player.chips;
+    document.getElementById('dealerChips').textContent = this.dealer.chips;
+
+    // 渲染卡牌
+    this.renderCards('playerCards', this.player.cards);
+    this.renderCards('dealerCards', this.dealer.cards, true);
+
+    // 控制按钮
+    this.renderControls();
+  }
+
+  // 渲染卡牌
+  renderCards(containerId, cards, isDealer = false) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    cards.forEach((card, index) => {
+      const div = document.createElement('div');
+      // ['♠', '♥', '♦', '♣'];
+      let huase= 'red'
+      let content=card.rank
+      if(content==11){
+        content='j'
+      }
+      if(content==12){
+        content='Q'
+      }
+      if(content==13){
+        content='K'
+      }
+      if(card.suit=='♠'||card.suit=='♣'){
+        huase= 'black'
+      }
+      if(isDealer && index < 2 ){
+        content=''
+        card.suit=''
+      }
+      // div.className = `card ${isDealer && index === 0 ? 'hidden' : ''}`;
+      // div.textContent = isDealer && index === 0 ? '?' : `${card.rank}${card.suit}`;
+      div.innerHTML=`<div class="poker-card">
+      <div class="card-face card-front">
+      <div class="card-corner top-left `+huase+`">`+content+card.suit+`</div>
+      <div class="center-suit `+huase+`">`+card.suit+`</div>
+      <div class="card-corner bottom-right `+huase+`">`+content+card.suit+`</div>
+      </div>
+        <div class="card-face card-back"></div>
+      </div>`
+      container.appendChild(div);
+    });
+  }
+
+  // 渲染控制按钮
+  renderControls() {
+    const controls = document.getElementById('playerControls');
+    controls.innerHTML = '';
+    
+    if (this.gamePhase === 'betting') {
+      [1, 2, 3].forEach(amount => {
+        const button = document.createElement('button');
+        button.textContent = `跟踹 ${amount}`;
+        button.onclick = () => this.handleBet(amount);
+        controls.appendChild(button);
+      });
+      [10, 20, 30].forEach(amount => {
+        const button = document.createElement('button');
+        button.textContent = `飛 ${amount}`;
+        button.onclick = () => this.handleBet(amount);
+        controls.appendChild(button);
+      });
+      const allInButton = document.createElement('button');
+      allInButton.textContent = '飛';
+      allInButton.onclick = () => this.handleAllIn();
+      controls.appendChild(allInButton);
+    }
+  }
+
+  // 处理下注
+  handleBet(amount) {
+    if (this.placeBet(amount)) {
+      this.proceedGame();
+    }
+  }
+
+  // 处理全押
+  handleAllIn() {
+    this.allIn();
+    this.proceedGame();
+  }
+
+  // 游戏流程控制
+  proceedGame() {
+    if (this.player.cards.length < 5) {
+      this.dealCard(this.player);
+      this.dealCard(this.dealer);
+    }
+    // 简化的自动庄家逻辑
+    if (this.player.cards.length === 5) {
+      this.resolveGame()
+    }
+  } 
+
+  // 结算游戏
+  resolveGame() {
+    const playerHand = this.evaluateHand(this.player.cards);
+    const dealerHand = this.evaluateHand(this.dealer.cards);
+    
+    if (playerHand.type > dealerHand.type) {
+      this.player.chips += this.currentBet * 2;
+      console.log('玩家胜利!');
+    } else {
+      console.log('庄家胜利!');
+    }
+
+    // this.initGame();
+  }
+
+  // 牌型评估（同之前实现）
+
+
+  evaluateHand(cards) {
+    const ranks = cards.map(c => c.rank).sort((a, b) => a - b);
+    const suits = cards.map(c => c.suit);
+    
+    // 辅助函数：统计点数出现次数
+    const countRanks = () => {
+      let count = {};
+      ranks.forEach(r => count[r] = (count[r] || 0) + 1);
+      return Object.values(count).sort((a,b) => b - a);
+    };
+
+    // 判断是否顺子
+    const isStraight = () => {
+      // 处理A-2-3-4-5的特殊情况
+      if (ranks.join(',') === '2,3,4,5,14') return true;
+      for (let i = 1; i < ranks.length; i++) {
+        if (ranks[i] - ranks[i-1] !== 1) return false;
+      }
+      return true;
+    };
+
+    // 判断是否同花
+    const isFlush = () => new Set(suits).size === 1;
+
+    const counts = countRanks();
+    const straight = isStraight();
+    const flush = isFlush();
+
+    // 牌型判断
+    if (flush && straight) {
+      return { type: 9, name: '同花顺', ranks }; // 同花顺
+    } else if (counts[0] === 4) {
+      return { type: 8, name: '四条', ranks };    // 四条
+    } else if (counts[0] === 3 && counts[1] === 2) {
+      return { type: 7, name: '葫芦', ranks };    // 葫芦
+    } else if (flush) {
+      return { type: 6, name: '同花', ranks };    // 同花
+    } else if (straight) {
+      return { type: 5, name: '顺子', ranks };    // 顺子
+    } else if (counts[0] === 3) {
+      return { type: 4, name: '三条', ranks };     // 三条
+    } else if (counts[0] === 2 && counts[1] === 2) {
+      return { type: 3, name: '两对', ranks };    // 两对
+    } else if (counts[0] === 2) {
+      return { type: 2, name: '一对', ranks };     // 一对
+    } else {
+      return { type: 1, name: '高牌', ranks };     // 高牌
+    }
+  };
+
+  // ================== 比较胜负 ==================
+  compareHands(playerHand, dealerHand) {
+    const p = this.evaluateHand(playerHand);
+    const d = this.evaluateHand(dealerHand);
+
+    // 比较牌型等级
+    if (p.type > d.type) return p.type+'玩家胜';
+    if (p.type < d.type) return d.type+'庄家胜';
+
+    // 牌型相同时比较具体点数
+    const compareRanks = (a, b) => {
+      // 处理A-2-3-4-5顺子的特殊情况
+      if (a.ranks.join(',') === '2,3,4,5,14') a.ranks = [1,2,3,4,5];
+      if (b.ranks.join(',') === '2,3,4,5,14') b.ranks = [1,2,3,4,5];
+      
+      for (let i = a.ranks.length - 1; i >= 0; i--) {
+        if (a.ranks[i] > b.ranks[i]) return '玩家胜';
+        if (a.ranks[i] < b.ranks[i]) return '庄家胜';
+      }
+      return '平局';
+    };
+
+    return compareRanks(p, d);
+  };
+      // ================== 示例对局 ==================
+  // demoGame() {
+  //   const game = new ShowHandGame();
+  //   game.initGame();
+    
+  //   // 模拟发牌（预设牌组用于演示）
+  //   game.players = [
+  //     new Card('♠', 14), // A
+  //     new Card('♦', 13), // K
+  //     new Card('♥', 12), // Q
+  //     new Card('♣', 10),
+  //     new Card('♠', 8)
+  //   ];
+    
+  //   game.dealer = [
+  //     new Card('♥', 11), // J
+  //     new Card('♦', 11), // J
+  //     new Card('♣', 9),
+  //     new Card('♥', 9),
+  //     new Card('♣', 11) // J
+  //   ];
+
+  //   console.log('玩家牌型:', ShowHandGame.evaluateHand(game.players).name);
+  //   console.log('庄家牌型:', ShowHandGame.evaluateHand(game.dealer).name);
+  //   console.log('结果:', ShowHandGame.compareHands(game.players, game.dealer));
+  // };
+};
+
+
+// ================== 初始化游戏 ==================
+let game = new ShowHandGame();
+
+game.initGame();
+
+
+</script>
+
+</body>
+</html>
